@@ -7,9 +7,13 @@ import android.graphics.Color;
 import android.graphics.Matrix;
 import android.graphics.Paint;
 import android.graphics.Point;
+import android.graphics.PointF;
 import android.graphics.Rect;
+import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
+import android.os.SystemClock;
 import android.util.AttributeSet;
+import android.util.DisplayMetrics;
 import android.util.Log;
 import android.view.MotionEvent;
 import android.view.View;
@@ -36,7 +40,8 @@ public class ImpressionistView extends View {
     private boolean _useMotionSpeedForBrushStrokeSize = true;
     private Paint _paintBorder = new Paint();
     private BrushType _brushType = BrushType.Square;
-    private float _minBrushRadius = 5;
+    private float _minBrushRadius = 10;
+    private float _maxBrushRadius = 100;
 
     public ImpressionistView(Context context) {
         super(context);
@@ -70,7 +75,7 @@ public class ImpressionistView extends View {
         _paint.setAlpha(_alpha);
         _paint.setAntiAlias(true);
         _paint.setStyle(Paint.Style.FILL);
-        _paint.setStrokeWidth(4);
+        _paint.setStrokeWidth(10);
 
         _paintBorder.setColor(Color.BLACK);
         _paintBorder.setStrokeWidth(3);
@@ -111,7 +116,12 @@ public class ImpressionistView extends View {
      * Clears the painting
      */
     public void clearPainting(){
-        //TODO
+        if(_offScreenCanvas != null){
+            Paint p = new Paint();
+            p.setColor(Color.WHITE);
+            p.setStyle(Paint.Style.FILL);
+            _offScreenCanvas.drawRect(0,0, this.getWidth(), this.getHeight(), p);
+        }
     }
 
     @Override
@@ -130,15 +140,43 @@ public class ImpressionistView extends View {
     public boolean onTouchEvent(MotionEvent motionEvent){
 
         //TODO
-        //Basically, the way this works is to liste for Touch Down and Touch Move events and determine where those
+        //Basically, the way this works is to listen for Touch Down and Touch Move events and determine where those
         //touch locations correspond to the bitmap in the ImageView. You can then grab info about the bitmap--like the pixel color--
         //at that location
+        switch(motionEvent.getAction()){
+            case MotionEvent.ACTION_DOWN:
+            case MotionEvent.ACTION_MOVE:
+                // Make sure we have an image to draw from
+                if(_imageView == null || _imageView.getDrawable() == null) break;
 
+                // TODO: Properly get position from bitmap
+                switch(_brushType){
+                    case Circle:
+                        break;
+                    case Square:
+                        break;
+                    case Line:
+                        break;
+                }
+                float touchX = motionEvent.getX();
+                float touchY = motionEvent.getY();
+                int x = (int)(touchX / 2);
+                int y = (int)(touchY / 2);
+                Bitmap b = ((BitmapDrawable)_imageView.getDrawable()).getBitmap();
+                _paint.setColor(b.getPixel(x,y));
+
+                _offScreenCanvas.drawRect(  touchX - _minBrushRadius, touchY - _minBrushRadius,
+                                            touchX + _minBrushRadius, touchY + _minBrushRadius,
+                                            _paint);
+
+                invalidate();
+                break;
+            case MotionEvent.ACTION_UP:
+                break;
+        }
 
         return true;
     }
-
-
 
 
     /**
@@ -151,11 +189,9 @@ public class ImpressionistView extends View {
      */
     private static Rect getBitmapPositionInsideImageView(ImageView imageView){
         Rect rect = new Rect();
-
         if (imageView == null || imageView.getDrawable() == null) {
             return rect;
         }
-
         // Get image dimensions
         // Get image matrix values and place them in an array
         float[] f = new float[9];
