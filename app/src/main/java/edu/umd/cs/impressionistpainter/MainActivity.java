@@ -2,67 +2,159 @@ package edu.umd.cs.impressionistpainter;
 
 import android.app.AlertDialog;
 import android.content.DialogInterface;
+import android.content.Intent;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.os.Environment;
+import android.provider.MediaStore;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
+import android.util.Log;
+import android.view.MenuItem;
 import android.view.View;
+import android.webkit.URLUtil;
+import android.widget.ImageView;
+import android.widget.PopupMenu;
+import android.widget.Toast;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
-    private boolean imagesDownloaded;
+    private static int RESULT_LOAD_IMAGE = 1;
+    public static String[] IMAGE_URLS ={
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/BoliviaBird_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/BolivianDoor_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/MinnesotaFlower_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/PeruHike_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/ReginaSquirrel_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/SucreDog_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/SucreStreet_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/SucreStreet_PhotoByJonFroehlich2(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/SucreWine_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/WashingtonStateFlower_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/JonILikeThisShirt_Medium.JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/JonUW_(853x1280).jpg",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/MattMThermography_Medium.jpg",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/PinkFlower_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/PinkFlower2_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/PurpleFlowerPlusButterfly_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/WhiteFlower_PhotoByJonFroehlich(Medium).JPG",
+            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/YellowFlower_PhotoByJonFroehlich(Medium).JPG",
+    };
+    private ImpressionistView _impressionistView;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
-        imagesDownloaded = false;
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+
+        _impressionistView = (ImpressionistView)findViewById(R.id.viewImpressionist);
+        ImageView imageView = (ImageView)findViewById(R.id.viewImage);
+        _impressionistView.setImageView(imageView);
     }
 
     // Image download button handler
     public void onButtonClickDownloadImages(View v){
+            // Without this call, the app was crashing in the onActivityResult method when trying to read from file system
+            FileUtils.verifyStoragePermissions(this);
 
-        // TODO: DOWNLOAD THE IMAGES
+            // Amazing Stackoverflow post on downloading images: http://stackoverflow.com/questions/15549421/how-to-download-and-save-an-image-in-android
+            final BasicImageDownloader imageDownloader = new BasicImageDownloader(new BasicImageDownloader.OnImageLoaderListener() {
 
-        new AlertDialog.Builder(v.getContext())
-                .setTitle("Message")
-                .setMessage("Images Downloaded.")
-                .setPositiveButton("Okay.", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // do nothing
+                @Override
+                public void onError(String imageUrl, BasicImageDownloader.ImageError error) {
+                    Log.v("BasicImageDownloader", "onError: " + error);
+                }
+
+                @Override
+                public void onProgressChange(String imageUrl, int percent) {
+                    Log.v("BasicImageDownloader", "onProgressChange: " + percent);
+                }
+
+                @Override
+                public void onComplete(String imageUrl, Bitmap downloadedBitmap) {
+                    File externalStorageDirFile = Environment.getExternalStorageDirectory();
+                    String externalStorageDirStr = Environment.getExternalStorageDirectory().getAbsolutePath();
+                    boolean checkStorage = FileUtils.checkPermissionToWriteToExternalStorage(MainActivity.this);
+                    String guessedFilename = URLUtil.guessFileName(imageUrl, null, null);
+
+                    // See: http://developer.android.com/training/basics/data-storage/files.html
+                    // Get the directory for the user's public pictures directory.
+                    File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), guessedFilename);
+                    try {
+                        boolean compressSucceeded = downloadedBitmap.compress(Bitmap.CompressFormat.PNG, 100, new FileOutputStream(file));
+                        FileUtils.addImageToGallery(file.getAbsolutePath(), getApplicationContext());
+                        Toast.makeText(getApplicationContext(), "Saved to " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
+                    } catch (FileNotFoundException e) {
+                        e.printStackTrace();
                     }
-                })
-                .setIcon(android.R.drawable.ic_dialog_alert)
-                .show();
+                }
+            });
 
-        imagesDownloaded = true;
+            for(String url: IMAGE_URLS){
+                imageDownloader.download(url, true);
+            }
     }
 
     // Load image button handler
     public void onButtonClickLoadImage(View v){
-        if(imagesDownloaded){}    // do x
-        else {} // do y
+        // Without this call, the app was crashing in the onActivityResult method when trying to read from file system
+        FileUtils.verifyStoragePermissions(this);
+        Intent i = new Intent(
+                Intent.ACTION_PICK,
+                android.provider.MediaStore.Images.Media.EXTERNAL_CONTENT_URI);
+        startActivityForResult(i, RESULT_LOAD_IMAGE);
     }
 
     // Brush change button handler
     public void onButtonClickSetBrush(View v){
+        _impressionistView.setBrushType(BrushType.Circle);
+        Toast.makeText(MainActivity.this, "Brush type: Circle", Toast.LENGTH_SHORT).show();
 
     }
 
     // Clear button handler
     public void onButtonClickClear(View v){
-        new AlertDialog.Builder(v.getContext())
-                .setTitle("Warning!")
-                .setMessage("Really clear your painting?")
-                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // clear the screen
-                    }
-                })
-                .setNegativeButton(android.R.string.no, new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        // do nothing
-                    }
-                })
+        new AlertDialog.Builder(this)
+                .setTitle("Clear Painting?")
+                .setMessage("Do you really want to clear your painting?")
                 .setIcon(android.R.drawable.ic_dialog_alert)
-                .show();
+                .setPositiveButton(android.R.string.yes, new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int whichButton) {
+                        Toast.makeText(MainActivity.this, "Painting cleared", Toast.LENGTH_SHORT).show();
+                        _impressionistView.clearPainting();
+                    }})
+                .setNegativeButton(android.R.string.no, null).show();
+    }
+    /**
+     * Called automatically when an image has been selected in the Gallery
+     * @param requestCode
+     * @param resultCode
+     * @param data
+     */
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+
+        if (requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null != data) {
+            Uri imageUri = data.getData();
+
+            try {
+                Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
+                ImageView imageView = (ImageView) findViewById(R.id.viewImage);
+
+                // destroy the drawing cache to ensure that when a new image is loaded, its cached
+                imageView.destroyDrawingCache();
+                imageView.setImageBitmap(bitmap);
+                imageView.setDrawingCacheEnabled(true);
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+        }
     }
 }

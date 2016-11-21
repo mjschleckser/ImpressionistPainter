@@ -6,7 +6,5 @@ package edu.umd.cs.impressionistpainter;
 public enum BrushType {
     Circle,
     Square,
-    Line,
-    CircleSplatter,
-    LineSplatter
+    Line
 }
