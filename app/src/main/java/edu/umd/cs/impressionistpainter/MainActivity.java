@@ -24,27 +24,9 @@ import java.io.IOException;
 
 public class MainActivity extends AppCompatActivity {
 
+
+
     private static int RESULT_LOAD_IMAGE = 1;
-    public static String[] IMAGE_URLS ={
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/BoliviaBird_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/BolivianDoor_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/MinnesotaFlower_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/PeruHike_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/ReginaSquirrel_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/SucreDog_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/SucreStreet_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/SucreStreet_PhotoByJonFroehlich2(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/SucreWine_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/WashingtonStateFlower_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/JonILikeThisShirt_Medium.JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/JonUW_(853x1280).jpg",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/MattMThermography_Medium.jpg",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/PinkFlower_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/PinkFlower2_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/PurpleFlowerPlusButterfly_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/WhiteFlower_PhotoByJonFroehlich(Medium).JPG",
-            "http://www.cs.umd.edu/class/spring2016/cmsc434/assignments/IA08-AndroidII/Images/YellowFlower_PhotoByJonFroehlich(Medium).JPG",
-    };
     private ImpressionistView _impressionistView;
 
     @Override
@@ -59,45 +41,7 @@ public class MainActivity extends AppCompatActivity {
 
     // Image download button handler
     public void onButtonClickDownloadImages(View v){
-            // Without this call, the app was crashing in the onActivityResult method when trying to read from file system
-            FileUtils.verifyStoragePermissions(this);
-
-            // Amazing Stackoverflow post on downloading images: http://stackoverflow.com/questions/15549421/how-to-download-and-save-an-image-in-android
-            final BasicImageDownloader imageDownloader = new BasicImageDownloader(new BasicImageDownloader.OnImageLoaderListener() {
-
-                @Override
-                public void onError(String imageUrl, BasicImageDownloader.ImageError error) {
-                    Log.v("BasicImageDownloader", "onError: " + error);
-                }
-
-                @Override
-                public void onProgressChange(String imageUrl, int percent) {
-                    Log.v("BasicImageDownloader", "onProgressChange: " + percent);
-                }
-
-                @Override
-                public void onComplete(String imageUrl, Bitmap downloadedBitmap) {
-                    File externalStorageDirFile = Environment.getExternalStorageDirectory();
-                    String externalStorageDirStr = Environment.getExternalStorageDirectory().getAbsolutePath();
-                    boolean checkStorage = FileUtils.checkPermissionToWriteToExternalStorage(MainActivity.this);
-                    String guessedFilename = URLUtil.guessFileName(imageUrl, null, null);
-
-                    // See: http://developer.android.com/training/basics/data-storage/files.html
-                    // Get the directory for the user's public pictures directory.
-                    File file = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_PICTURES), guessedFilename);
-                    try {
-                        boolean compressSucceeded = downloadedBitmap.compress(Bitmap.CompressFormat.PNG, 100, new FileOutputStream(file));
-                        FileUtils.addImageToGallery(file.getAbsolutePath(), getApplicationContext());
-                        Toast.makeText(getApplicationContext(), "Saved to " + file.getAbsolutePath(), Toast.LENGTH_SHORT).show();
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
-                    }
-                }
-            });
-
-            for(String url: IMAGE_URLS){
-                imageDownloader.download(url, true);
-            }
+        new DownloadTask().execute(this);
     }
 
     // Load image button handler
@@ -130,6 +74,8 @@ public class MainActivity extends AppCompatActivity {
                     }})
                 .setNegativeButton(android.R.string.no, null).show();
     }
+
+
     /**
      * Called automatically when an image has been selected in the Gallery
      * @param requestCode
