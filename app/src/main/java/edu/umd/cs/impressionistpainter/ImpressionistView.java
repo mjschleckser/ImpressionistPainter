@@ -1,6 +1,7 @@
 package edu.umd.cs.impressionistpainter;
 
 import android.content.Context;
+import android.content.ContextWrapper;
 import android.graphics.Bitmap;
 import android.graphics.Canvas;
 import android.graphics.Color;
@@ -12,6 +13,7 @@ import android.graphics.Rect;
 import android.graphics.drawable.BitmapDrawable;
 import android.graphics.drawable.Drawable;
 import android.os.SystemClock;
+import android.provider.MediaStore;
 import android.util.AttributeSet;
 import android.util.DisplayMetrics;
 import android.util.Log;
@@ -21,6 +23,9 @@ import android.view.VelocityTracker;
 import android.view.View;
 import android.widget.ImageView;
 
+import java.io.File;
+import java.io.FileOutputStream;
+import java.io.IOException;
 import java.text.MessageFormat;
 
 /**
@@ -29,7 +34,7 @@ import java.text.MessageFormat;
 
 public class ImpressionistView extends View {
 
-    private ImageView _imageView;
+    private ImpressionistImageView _imageView;
 
     private Canvas _offScreenCanvas = null;
     private Bitmap _offScreenBitmap = null;
@@ -37,15 +42,9 @@ public class ImpressionistView extends View {
     private Paint _canvasPaint = new Paint();
 
     private int _alpha = 150;
-    private int _defaultRadius = 25;
-    private Point _lastPoint = null;
-    private long _lastPointTime = -1;
-    private boolean _useMotionSpeedForBrushStrokeSize = true;
     private Paint _paintBorder = new Paint();
     private BrushType _brushType = BrushType.Circle;
-    private float _minBrushRadius = 15;
     private float _brushRadius = 40;
-    private float _maxBrushRadius = 80;
     private VelocityTracker _velocity;
 
     public ImpressionistView(Context context) {
@@ -80,17 +79,28 @@ public class ImpressionistView extends View {
     @Override
     protected void onSizeChanged (int w, int h, int oldw, int oldh){
         Bitmap bitmap = getDrawingCache();
+        clearPainting();
         if(bitmap != null) {
-            clearPainting();
             _offScreenBitmap = getDrawingCache().copy(Bitmap.Config.ARGB_8888, true);
             _offScreenCanvas = new Canvas(_offScreenBitmap);
         }
     }
 
-    public void setImageView(ImageView imageView){
+    public void setImageView(ImpressionistImageView imageView){
         _imageView = imageView;
     }
 
+    public String saveToInternalStorage(){
+        return MediaStore.Images.Media.insertImage(
+                getContext().getContentResolver(),
+                _offScreenBitmap ,
+                "An Impressionist Painting" ,
+                "An impressionist painting created by my Impressionist app.");
+    }
+
+    public BrushType getBrushType() {
+        return _brushType;
+    }
     public void setBrushType(BrushType brushType){
         _brushType = brushType;
     }
@@ -111,7 +121,6 @@ public class ImpressionistView extends View {
     @Override
     public void onDraw(Canvas canvas) {
         super.onDraw(canvas);
-
         if(_offScreenBitmap != null) {
             canvas.drawBitmap(_offScreenBitmap, 0, 0, _canvasPaint);
         }
@@ -122,11 +131,6 @@ public class ImpressionistView extends View {
 
     @Override
     public boolean onTouchEvent(MotionEvent motionEvent){
-
-        //TODO
-        //Basically, the way this works is to listen for Touch Down and Touch Move events and determine where those
-        //touch locations correspond to the bitmap in the ImageView. You can then grab info about the bitmap--like the pixel color--
-        //at that location
         switch(motionEvent.getAction()){
             case MotionEvent.ACTION_DOWN:
                 if (_velocity == null) {
@@ -134,6 +138,8 @@ public class ImpressionistView extends View {
                 } else {
                     _velocity.clear();
                 }
+
+                _imageView.showBrush();
                 break;
             case MotionEvent.ACTION_MOVE:
                 // Make sure we have an image to draw from
@@ -142,15 +148,26 @@ public class ImpressionistView extends View {
 
                 float touchX = motionEvent.getX();
                 float touchY = motionEvent.getY();
+
                 Rect bitmapRect = getBitmapPositionInsideImageView(_imageView);
 
-                Bitmap b = _imageView.getDrawingCache(true);
+                // Handle out-of-bounds color requests
+                touchY = Math.max(touchY, bitmapRect.top);
+                touchY = Math.min(touchY, (bitmapRect.top + bitmapRect.height()));
+                touchX = Math.max(touchX, bitmapRect.left);
+                touchX = Math.min(touchX, (bitmapRect.left + bitmapRect.width()));
 
+                _imageView.setBrushPos(touchX, touchY);
+
+                Bitmap b = _imageView.getDrawingCache(true);
+                int color = _paint.getColor();
                 try {
-                    _paint.setColor(b.getPixel((int)touchX, (int)touchY));
+                    color = b.getPixel((int)touchX, (int)touchY);
                 } catch (Exception e){
-                    // do nothing
+                    Log.e("getPixel Exception" , e.getStackTrace().toString());
                 }
+                _paint.setColor(color);
+
                 switch(_brushType){
                     case Circle:
                         _offScreenCanvas.drawCircle(touchX, touchY, _brushRadius, _paint);
@@ -172,20 +189,13 @@ public class ImpressionistView extends View {
                 invalidate();
                 break;
             case MotionEvent.ACTION_UP:
+                _imageView.hideBrush();
                 break;
         }
         return true;
     }
 
 
-    /**
-     * This method is useful to determine the bitmap position within the Image View. It's not needed for anything else
-     * Modified from:
-     *  - http://stackoverflow.com/a/15538856
-     *  - http://stackoverflow.com/a/26930938
-     * @param imageView
-     * @return
-     */
     private static Rect getBitmapPositionInsideImageView(ImageView imageView){
         Rect rect = new Rect();
         if (imageView == null || imageView.getDrawable() == null) {
@@ -220,14 +230,6 @@ public class ImpressionistView extends View {
         rect.set(left, top, left + widthActual, top + heightActual);
 
         return rect;
-    }
-
-    public Bitmap getBitmap() {
-        return _offScreenBitmap;
-    }
-
-    public BrushType getBrushType() {
-        return _brushType;
     }
 }
 

@@ -28,10 +28,10 @@
             android:layout_weight="1.9"
             android:weightSum="2">
 
-            <ImageView
+            <edu.umd.cs.impressionistpainter.ImpressionistImageView
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
-                android:id="@+id/viewImage"
+                android:id="@+id/viewImageImpressionist"
                 android:layout_weight="1" />
 
             <edu.umd.cs.impressionistpainter.ImpressionistView

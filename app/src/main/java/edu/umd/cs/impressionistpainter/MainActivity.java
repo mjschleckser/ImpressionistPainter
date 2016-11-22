@@ -1,12 +1,15 @@
 package edu.umd.cs.impressionistpainter;
 
 import android.app.AlertDialog;
+import android.content.Context;
+import android.content.ContextWrapper;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Environment;
 import android.provider.MediaStore;
+import android.provider.Settings;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.util.Log;
@@ -21,6 +24,7 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Calendar;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -54,7 +58,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
 
         _impressionistView = (ImpressionistView)findViewById(R.id.viewImpressionist);
-        ImageView imageView = (ImageView)findViewById(R.id.viewImage);
+        ImpressionistImageView imageView = (ImpressionistImageView)findViewById(R.id.viewImageImpressionist);
         _impressionistView.setImageView(imageView);
     }
 
@@ -108,8 +112,8 @@ public class MainActivity extends AppCompatActivity {
 
     // Save image button handler
     public void onButtonClickSaveImage(View v){
-        FileUtils.verifyStoragePermissions(this);
-        _impressionistView.getBitmap();
+        Toast.makeText(MainActivity.this, "Image saved to " +
+                _impressionistView.saveToInternalStorage(), Toast.LENGTH_SHORT).show();
     }
 
     // Brush change button handler
@@ -147,7 +151,7 @@ public class MainActivity extends AppCompatActivity {
             Uri imageUri = data.getData();
             try {
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
-                ImageView imageView = (ImageView) findViewById(R.id.viewImage);
+                ImpressionistImageView imageView = (ImpressionistImageView) findViewById(R.id.viewImageImpressionist);
 
                 // destroy the drawing cache to ensure that when a new image is loaded, its cached
                 imageView.destroyDrawingCache();
@@ -157,7 +161,6 @@ public class MainActivity extends AppCompatActivity {
             } catch (IOException e) {
                 e.printStackTrace();
             }
-
         }
     }
 }
