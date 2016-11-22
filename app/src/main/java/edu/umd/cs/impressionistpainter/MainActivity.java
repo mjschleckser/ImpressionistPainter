@@ -106,6 +106,12 @@ public class MainActivity extends AppCompatActivity {
         startActivityForResult(i, RESULT_LOAD_IMAGE);
     }
 
+    // Save image button handler
+    public void onButtonClickSaveImage(View v){
+        FileUtils.verifyStoragePermissions(this);
+        _impressionistView.getBitmap();
+    }
+
     // Brush change button handler
     public void onButtonClickSetBrush(View v){
         _impressionistView.setBrushType(BrushType.Circle);
