@@ -5,6 +5,11 @@ package edu.umd.cs.impressionistpainter;
  */
 public enum BrushType {
     Circle,
-    Square,
-    Splatter
+    Splatter,
+    SpeedBrush;
+
+    public BrushType next(){
+        if(ordinal() >= (values().length-1)) return values()[0];
+        else return values()[ordinal()+1];
+    }
 }

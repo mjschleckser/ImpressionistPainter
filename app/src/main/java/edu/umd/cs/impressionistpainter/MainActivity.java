@@ -114,8 +114,10 @@ public class MainActivity extends AppCompatActivity {
 
     // Brush change button handler
     public void onButtonClickSetBrush(View v){
-        _impressionistView.setBrushType(BrushType.Circle);
-        Toast.makeText(MainActivity.this, "Brush type: Circle", Toast.LENGTH_SHORT).show();
+        BrushType b = _impressionistView.getBrushType();
+        BrushType nextBrush = b.next();
+        _impressionistView.setBrushType(nextBrush);
+        Toast.makeText(MainActivity.this, "Brush type: " + nextBrush, Toast.LENGTH_SHORT).show();
 
     }
 
@@ -143,7 +145,6 @@ public class MainActivity extends AppCompatActivity {
 
         if (requestCode == RESULT_LOAD_IMAGE && resultCode == RESULT_OK && null != data) {
             Uri imageUri = data.getData();
-
             try {
                 Bitmap bitmap = MediaStore.Images.Media.getBitmap(this.getContentResolver(), imageUri);
                 ImageView imageView = (ImageView) findViewById(R.id.viewImage);
@@ -152,6 +153,7 @@ public class MainActivity extends AppCompatActivity {
                 imageView.destroyDrawingCache();
                 imageView.setImageBitmap(bitmap);
                 imageView.setDrawingCacheEnabled(true);
+                _impressionistView.clearPainting();
             } catch (IOException e) {
                 e.printStackTrace();
             }

@@ -34,7 +34,7 @@ public class ImpressionistView extends View {
     private Canvas _offScreenCanvas = null;
     private Bitmap _offScreenBitmap = null;
     private Paint _paint = new Paint();
-    private Paint _canvasPaint = new Paint(Paint.DITHER_FLAG);
+    private Paint _canvasPaint = new Paint();
 
     private int _alpha = 150;
     private int _defaultRadius = 25;
@@ -46,7 +46,7 @@ public class ImpressionistView extends View {
     private float _minBrushRadius = 15;
     private float _brushRadius = 40;
     private float _maxBrushRadius = 80;
-    private VelocityTracker _velocity = VelocityTracker.obtain();
+    private VelocityTracker _velocity;
 
     public ImpressionistView(Context context) {
         super(context);
@@ -75,32 +75,22 @@ public class ImpressionistView extends View {
         _paintBorder.setStyle(Paint.Style.STROKE);
         _paintBorder.setAlpha(50);
 
-
     }
 
     @Override
     protected void onSizeChanged (int w, int h, int oldw, int oldh){
-
         Bitmap bitmap = getDrawingCache();
-        Log.v("onSizeChanged", MessageFormat.format("bitmap={0}, w={1}, h={2}, oldw={3}, oldh={4}", bitmap, w, h, oldw, oldh));
         if(bitmap != null) {
+            clearPainting();
             _offScreenBitmap = getDrawingCache().copy(Bitmap.Config.ARGB_8888, true);
             _offScreenCanvas = new Canvas(_offScreenBitmap);
         }
     }
 
-    /**
-     * Sets the ImageView, which hosts the image that we will paint in this view
-     * @param imageView
-     */
     public void setImageView(ImageView imageView){
         _imageView = imageView;
     }
 
-    /**
-     * Sets the brush type. Feel free to make your own and completely change my BrushType enum
-     * @param brushType
-     */
     public void setBrushType(BrushType brushType){
         _brushType = brushType;
     }
@@ -139,7 +129,12 @@ public class ImpressionistView extends View {
         //at that location
         switch(motionEvent.getAction()){
             case MotionEvent.ACTION_DOWN:
-                _velocity.clear();
+                if (_velocity == null) {
+                    _velocity = VelocityTracker.obtain();
+                } else {
+                    _velocity.clear();
+                }
+                break;
             case MotionEvent.ACTION_MOVE:
                 // Make sure we have an image to draw from
                 if(_imageView == null || _imageView.getDrawable() == null) break;
@@ -156,30 +151,24 @@ public class ImpressionistView extends View {
                 } catch (Exception e){
                     // do nothing
                 }
-                _brushType = BrushType.Splatter;
                 switch(_brushType){
                     case Circle:
                         _offScreenCanvas.drawCircle(touchX, touchY, _brushRadius, _paint);
-                        invalidate();
-                        break;
-                    case Square:
-                        _offScreenCanvas.drawRect(
-                                touchX - _brushRadius, touchY - _brushRadius,
-                                touchX + _brushRadius, touchY + _brushRadius,
-                                _paint);
-                        invalidate();
                         break;
                     case Splatter:
-                        int randXOffset = (int) ((Math.random()-.5) * 30);
-                        int randYOffset = (int) ((Math.random()-.5) * 30);
-                        int randBrushSize = (int) ((Math.random()) * 30) + 15;
+                        int randXOffset = (int) ((Math.random()-.5) * 40);
+                        int randYOffset = (int) ((Math.random()-.5) * 40);
+                        int randBrushSize = (int) ((Math.random()) * 45) + 15;
                         _offScreenCanvas.drawCircle(touchX + randXOffset, touchY + randYOffset,
                                                     randBrushSize, _paint);
-                        invalidate();
                         break;
+                    case SpeedBrush:
+                        _velocity.computeCurrentVelocity(1000);
+                        int velBrushSize = (int) (Math.abs(_velocity.getXVelocity()) + Math.abs(_velocity.getYVelocity()))/25;
+                        velBrushSize = Math.min(150, velBrushSize);
+                        velBrushSize = Math.max(20, velBrushSize);
+                        _offScreenCanvas.drawCircle(touchX, touchY, velBrushSize, _paint);
                 }
-
-
                 invalidate();
                 break;
             case MotionEvent.ACTION_UP:
@@ -235,6 +224,10 @@ public class ImpressionistView extends View {
 
     public Bitmap getBitmap() {
         return _offScreenBitmap;
+    }
+
+    public BrushType getBrushType() {
+        return _brushType;
     }
 }
 
